@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1,
+        "question": "2 + 2 = ?",
+        "A": "1",
+        "B": "2",
+        "C": "4",
+        "D": "5",
+        "correct": "C"
+    },
+    {
+        "id": 2,
+        "question": "Thu do Viet Nam la?",
+        "A": "TP.HCM",
+        "B": "Ha Noi",
+        "C": "Da Nang",
+        "D": "Hue",
+        "correct": "B"
+    }
+]
