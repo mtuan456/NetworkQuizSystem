@@ -12,8 +12,8 @@ namespace ExamServer
 {
     class Program
     {
-        static Dictionary<string, List<Socket>> rooms =
-            new Dictionary<string, List<Socket>>();
+        static List<Socket> clients =
+            new List<Socket>();
 
         static Dictionary<Socket, string> studentNames =
             new Dictionary<Socket, string>();
@@ -45,45 +45,60 @@ namespace ExamServer
 
             server.Listen(10);
 
-            Console.WriteLine("===== EXAM SERVER =====");
-            Console.WriteLine("Server dang chay...");
-            Console.WriteLine("Da doc " +
-                              questions.Count +
-                              " cau hoi tu JSON");
-            Console.WriteLine("Lenh:");
-            Console.WriteLine("START - Gui cau hoi hien tai");
-            Console.WriteLine("NEXT  - Chuyen sang cau tiep theo");
-            Console.WriteLine("RANK  - Gui bang xep hang");
+            Console.WriteLine(
+                "===== EXAM SERVER =====");
 
-            Thread acceptThread = new Thread(() =>
-            {
-                while (true)
+            Console.WriteLine(
+                "Server dang chay...");
+
+            Console.WriteLine(
+                "Da doc " +
+                questions.Count +
+                " cau hoi.");
+
+            Console.WriteLine(
+                "Lenh:");
+            Console.WriteLine(
+                "START - Gui cau hoi");
+            Console.WriteLine(
+                "NEXT  - Cau tiep theo");
+            Console.WriteLine(
+                "RANK  - Bang xep hang");
+
+            Thread acceptThread =
+                new Thread(() =>
                 {
-                    Socket client = server.Accept();
+                    while (true)
+                    {
+                        Socket client =
+                            server.Accept();
 
-                    Thread clientThread =
-                        new Thread(() =>
-                        {
-                            HandleClient(client);
-                        });
+                        Thread clientThread =
+                            new Thread(() =>
+                            {
+                                HandleClient(
+                                    client);
+                            });
 
-                    clientThread.Start();
-                }
-            });
+                        clientThread.Start();
+                    }
+                });
 
             acceptThread.Start();
 
             while (true)
             {
                 string command =
-                    (Console.ReadLine() ?? "")
-                    .ToUpper();
+                    Console.ReadLine()
+                    ?? "";
+
+                command =
+                    command.ToUpper();
 
                 if (command == "START")
                 {
                     SendCurrentQuestion();
                 }
-
                 else if (command == "NEXT")
                 {
                     currentQuestion++;
@@ -94,20 +109,19 @@ namespace ExamServer
                         Console.WriteLine(
                             "Da het cau hoi.");
 
-                        foreach (var room in rooms)
+                        foreach (
+                            Socket student
+                            in clients)
                         {
-                            foreach (Socket student
-                                in room.Value)
+                            try
                             {
-                                try
-                                {
-                                    student.Send(
-                                        Encoding.UTF8.GetBytes(
-                                            "END"));
-                                }
-                                catch
-                                {
-                                }
+                                student.Send(
+                                    Encoding.UTF8
+                                    .GetBytes(
+                                        "END"));
+                            }
+                            catch
+                            {
                             }
                         }
 
@@ -119,40 +133,9 @@ namespace ExamServer
                         SendCurrentQuestion();
                     }
                 }
-
                 else if (command == "RANK")
                 {
-                    string ranking =
-                        "RANKING";
-
-                    foreach (var item in scores)
-                    {
-                        ranking +=
-                            "|" +
-                            item.Key +
-                            ": " +
-                            item.Value;
-                    }
-
-                    foreach (var room in rooms)
-                    {
-                        foreach (Socket student
-                            in room.Value)
-                        {
-                            try
-                            {
-                                student.Send(
-                                    Encoding.UTF8.GetBytes(
-                                        ranking));
-                            }
-                            catch
-                            {
-                            }
-                        }
-                    }
-
-                    Console.WriteLine(
-                        "Da gui bang xep hang.");
+                    SendRanking();
                 }
             }
         }
@@ -170,26 +153,62 @@ namespace ExamServer
             string question =
                 questions[currentQuestion];
 
-            foreach (var room in rooms)
+            foreach (
+                Socket student
+                in clients)
             {
-                foreach (Socket student
-                    in room.Value)
+                try
                 {
-                    try
-                    {
-                        student.Send(
-                            Encoding.UTF8.GetBytes(
-                                question));
-                    }
-                    catch
-                    {
-                    }
+                    student.Send(
+                        Encoding.UTF8
+                        .GetBytes(
+                            question));
+                }
+                catch
+                {
                 }
             }
 
             Console.WriteLine(
                 "Da gui cau hoi " +
                 (currentQuestion + 1));
+        }
+
+        static void SendRanking()
+        {
+            string ranking =
+                "RANKING";
+
+            foreach (
+                var item
+                in scores)
+            {
+                ranking +=
+                    "|" +
+                    item.Key +
+                    ": " +
+                    item.Value +
+                    " diem";
+            }
+
+            foreach (
+                Socket student
+                in clients)
+            {
+                try
+                {
+                    student.Send(
+                        Encoding.UTF8
+                        .GetBytes(
+                            ranking));
+                }
+                catch
+                {
+                }
+            }
+
+            Console.WriteLine(
+                "Da gui bang xep hang.");
         }
 
         static void LoadQuestionsFromJson()
@@ -201,37 +220,47 @@ namespace ExamServer
                         "questions.json");
 
                 JsonDocument doc =
-                    JsonDocument.Parse(json);
+                    JsonDocument.Parse(
+                        json);
 
-                foreach (JsonElement q in
-                         doc.RootElement
-                         .EnumerateArray())
+                foreach (
+                    JsonElement q
+                    in doc.RootElement
+                    .EnumerateArray())
                 {
                     string packet =
                         "QUESTION|" +
                         q.GetProperty("id")
-                        .GetInt32() + "|" +
-                        q.GetProperty("question")
-                        .GetString() + "|" +
+                            .GetInt32() +
+                        "|" +
+                        q.GetProperty(
+                            "question")
+                            .GetString() +
+                        "|" +
                         "A." +
                         q.GetProperty("A")
-                        .GetString() + "|" +
+                            .GetString() +
+                        "|" +
                         "B." +
                         q.GetProperty("B")
-                        .GetString() + "|" +
+                            .GetString() +
+                        "|" +
                         "C." +
                         q.GetProperty("C")
-                        .GetString() + "|" +
+                            .GetString() +
+                        "|" +
                         "D." +
                         q.GetProperty("D")
-                        .GetString();
+                            .GetString();
 
-                    questions.Add(packet);
+                    questions.Add(
+                        packet);
 
                     correctAnswers.Add(
                         q.GetProperty(
                             "correct")
-                        .GetString() ?? "A");
+                        .GetString()
+                        ?? "A");
                 }
             }
             catch (Exception ex)
@@ -251,10 +280,12 @@ namespace ExamServer
                     new byte[1024];
 
                 int size =
-                    client.Receive(data);
+                    client.Receive(
+                        data);
 
                 string msg =
-                    Encoding.UTF8.GetString(
+                    Encoding.UTF8
+                    .GetString(
                         data,
                         0,
                         size);
@@ -267,39 +298,32 @@ namespace ExamServer
                     string name =
                         parts[1];
 
-                    string room =
-                        parts[2];
+                    clients.Add(
+                        client);
 
-                    if (!rooms.ContainsKey(
-                        room))
+                    studentNames[
+                        client] = name;
+
+                    if (!scores
+                        .ContainsKey(
+                            name))
                     {
-                        rooms[room] =
-                            new List<Socket>();
-                    }
-
-                    rooms[room].Add(client);
-
-                    studentNames[client] =
-                        name;
-
-                    if (!scores.ContainsKey(
-                        name))
-                    {
-                        scores[name] = 0;
+                        scores[name]
+                            = 0;
                     }
 
                     Console.WriteLine(
                         name +
-                        " da tham gia phong " +
-                        room);
+                        " da tham gia.");
 
                     Console.WriteLine(
-                        "So hoc sinh trong phong: "
+                        "Tong so hoc sinh: "
                         +
-                        rooms[room].Count);
+                        clients.Count);
 
                     client.Send(
-                        Encoding.UTF8.GetBytes(
+                        Encoding.UTF8
+                        .GetBytes(
                             "JOIN_SUCCESS"));
                 }
 
@@ -309,45 +333,48 @@ namespace ExamServer
                         new byte[1024];
 
                     size =
-                        client.Receive(data);
+                        client.Receive(
+                            data);
 
                     if (size == 0)
                     {
                         break;
                     }
 
-                    string receiveMessage =
-                        Encoding.UTF8.GetString(
+                    string receive =
+                        Encoding.UTF8
+                        .GetString(
                             data,
                             0,
                             size);
 
-                    string[] answerParts =
-                        receiveMessage
+                    string[] answer =
+                        receive
                         .Split('|');
 
-                    if (answerParts[0]
+                    if (answer[0]
                         == "ANSWER")
                     {
-                        string answer =
-                            answerParts[2];
-
-                        string studentName =
+                        string student =
                             studentNames[
                                 client];
 
-                        Console.WriteLine(
-                            studentName +
-                            " tra loi: " +
-                            answer);
+                        string choice =
+                            answer[2];
 
-                        if (answer.ToUpper() ==
+                        Console.WriteLine(
+                            student +
+                            " tra loi: " +
+                            choice);
+
+                        if (choice
+                            .ToUpper() ==
                             correctAnswers[
                                 currentQuestion]
                             .ToUpper())
                         {
                             scores[
-                                studentName] += 10;
+                                student] += 10;
 
                             client.Send(
                                 Encoding.UTF8
@@ -372,6 +399,9 @@ namespace ExamServer
 
             try
             {
+                clients.Remove(
+                    client);
+
                 client.Close();
             }
             catch
@@ -380,3 +410,4 @@ namespace ExamServer
         }
     }
 }
+

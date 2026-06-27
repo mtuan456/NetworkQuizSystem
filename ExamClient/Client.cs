@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿﻿using System;
 using System.Net.Sockets;
 using System.Text;
 
@@ -33,17 +32,9 @@ namespace ExamClient
                 string name =
                     Console.ReadLine() ?? "";
 
-                Console.Write(
-                    "Nhap ma phong: ");
-
-                string room =
-                    Console.ReadLine() ?? "";
-
                 string joinMessage =
                     "JOIN|" +
-                    name +
-                    "|" +
-                    room;
+                    name;
 
                 client.Send(
                     Encoding.UTF8.GetBytes(
@@ -192,4 +183,3 @@ namespace ExamClient
         }
     }
 }
-
